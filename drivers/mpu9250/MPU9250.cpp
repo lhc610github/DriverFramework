@@ -169,7 +169,7 @@ int MPU9250::mpu9250_init()
 			   BITS_DLPF_CFG_184HZ | BITS_CONFIG_FIFO_MODE_OVERWRITE);
 #else
 	result = _writeReg(MPUREG_CONFIG,
-			   BITS_DLPF_CFG_250HZ | BITS_CONFIG_FIFO_MODE_OVERWRITE);
+			   BITS_DLPF_CFG_184HZ | BITS_CONFIG_FIFO_MODE_OVERWRITE);
 #endif
 
 	if (result != 0) {
@@ -455,7 +455,7 @@ void MPU9250::_measure()
 	//FIFO corrupt at 10MHz.
 	_setBusFrequency(SPI_FREQUENCY_5MHZ);
 #else
-	_setBusFrequency(SPI_FREQUENCY_10MHZ);
+	_setBusFrequency(SPI_FREQUENCY_5MHZ);//10
 #endif
 
 	result = _bulkRead(MPUREG_FIFO_R_W, fifo_read_buf, read_len);
@@ -501,7 +501,7 @@ void MPU9250::_measure()
 			m_synchronize.unlock();
 		}
 
-		const float temp_c = float(report->temp) / 361.0f + 35.0f;
+		const float temp_c = (float(report->temp) -21)/ 333.87f + 21.0f;
 
 		// Use the temperature field to try to detect if we (ever) fall out of sync with
 		// the FIFO buffer. If the temperature changes insane amounts, reset the FIFO logic
@@ -546,11 +546,11 @@ void MPU9250::_measure()
 		m_sensor_data.gyro_rad_s_x = float(report->gyro_x) * GYRO_RAW_TO_RAD_S;
 		m_sensor_data.gyro_rad_s_y = float(report->gyro_y) * GYRO_RAW_TO_RAD_S;
 		m_sensor_data.gyro_rad_s_z = float(report->gyro_z) * GYRO_RAW_TO_RAD_S;
-
+		int mag_error = false;
 		if (_mag_enabled) {
 			struct fifo_packet_with_mag *report_with_mag_data = (struct fifo_packet_with_mag *)report;
 
-			int mag_error = _mag->process((const struct mag_data &)report_with_mag_data->mag_st1,
+			mag_error = _mag->process((const struct mag_data &)report_with_mag_data->mag_st1,
 						      m_sensor_data.mag_ga_x,
 						      m_sensor_data.mag_ga_y,
 						      m_sensor_data.mag_ga_z);
@@ -561,7 +561,7 @@ void MPU9250::_measure()
 		}
 
 		// Pass on the sampling interval between FIFO samples at 8kHz.
-		m_sensor_data.fifo_sample_interval_us = 1000000 / MPU9250_MEASURE_INTERVAL_US
+		m_sensor_data.fifo_sample_interval_us =  MPU9250_MEASURE_INTERVAL_US //1000000 /
 							/ _packets_per_cycle_filtered;
 
 		// Flag if this is the last sample, and _publish() should wrap up the data it has received.
@@ -571,9 +571,10 @@ void MPU9250::_measure()
 
 		// Generate debug output every second, assuming that a sample is generated every
 		// 125 usecs
-#ifdef MPU9250_DEBUG
+  #ifdef MPU9250_DEBUG
+		//m_sensor_data.fifo_sample_interval_us
 
-		if (++m_sensor_data.read_counter % (1000000 / m_sensor_data.fifo_sample_interval_us) == 0) {
+		if (++m_sensor_data.read_counter % (1000000 / 1000) == 0) {
 
 			DF_LOG_INFO("IMU: accel: [%f, %f, %f]",
 				    (double)m_sensor_data.accel_m_s2_x,
@@ -583,21 +584,26 @@ void MPU9250::_measure()
 				    (double)m_sensor_data.gyro_rad_s_x,
 				    (double)m_sensor_data.gyro_rad_s_y,
 				    (double)m_sensor_data.gyro_rad_s_z);
+		if (_mag_enabled)
+			{DF_LOG_INFO("     mag:  [%f, %f, %f] ga",
+					    (double)m_sensor_data.mag_ga_x, (double)m_sensor_data.mag_ga_y, (double)m_sensor_data.mag_ga_z);
+				}
 			DF_LOG_INFO("    temp:  %f C", (double)m_sensor_data.temp_c);
+			DF_LOG_INFO("    time:  %f us", (double)m_sensor_data.fifo_sample_interval_us);
 		}
 
-#endif
+ #endif
 
-#ifdef MPU9250_DEBUG
+ #ifdef MPU9250_DEBUG
 
 		if (_mag_enabled && mag_error == 0) {
 			if ((m_sensor_data.read_counter % 10000) == 0) {
 				DF_LOG_INFO("     mag:  [%f, %f, %f] ga",
-					    m_sensor_data.mag_ga_x, m_sensor_data.mag_ga_y, m_sensor_data.mag_ga_z);
+					    (double)m_sensor_data.mag_ga_x, (double)m_sensor_data.mag_ga_y, (double)m_sensor_data.mag_ga_z);
 			}
 		}
 
-#endif
+ #endif
 
 		_publish(m_sensor_data);
 

@@ -184,6 +184,7 @@ public:
 		_mag_enabled(mag_enabled),
 		_last_temp_c(0.0f),
 		_temp_initialized(false),
+		_last_measure_time(0),
 		_mag_device_path(mag_device_path),
 		_mag(nullptr)
 	{
@@ -273,6 +274,7 @@ private:
 	float _gyro_scale;
 	float _acc_scale;
 	float _mag_scale;
+	uint64_t _last_measure_time;
 	const char *_mag_device_path;
 
 	LSM9DS1M *_mag;

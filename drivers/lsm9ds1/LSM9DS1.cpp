@@ -114,6 +114,11 @@ int LSM9DS1::lsm9ds1_init()
 	m_sensor_data.gyro_range_hit_counter = 0;
 	m_sensor_data.accel_range_hit_counter = 0;
 
+	m_sensor_data.fifo_overflow_counter = 0;
+	m_sensor_data.fifo_corruption_counter = 0;
+	m_sensor_data.fifo_sample_interval_us = 0;
+	m_sensor_data.is_last_fifo_sample = false;
+
 	m_synchronize.unlock();
 
 	// Enable Gyroscope
@@ -341,7 +346,7 @@ void LSM9DS1::_measure()
 		return;
 	}
 
-	_setBusFrequency(SPI_FREQUENCY_10MHZ);
+	_setBusFrequency(SPI_FREQUENCY_10MHZ);//10
 
 	struct packet report;
 
@@ -412,12 +417,22 @@ void LSM9DS1::_measure()
 	m_sensor_data.gyro_rad_s_y = float(report.gyro_y) * _gyro_scale;
 	m_sensor_data.gyro_rad_s_z = -float(report.gyro_z) * _gyro_scale;
 
-	m_sensor_data.mag_ga_x = float(report.mag_x) * _mag_scale;
+	m_sensor_data.mag_ga_x = -float(report.mag_x) * _mag_scale;
 	m_sensor_data.mag_ga_y = float(report.mag_y) * _mag_scale;
 	m_sensor_data.mag_ga_z = -float(report.mag_z) * _mag_scale;
 
 	// We need to fake this at 1000 us.
-	m_sensor_data.fifo_sample_interval_us = 1000;
+  	uint64_t now = DriverFramework::offsetTime();
+  	double dt = 0.0;
+  	dt  = (double)(now - _last_measure_time);
+  	if (dt > 500 && dt < 1500)
+  	{m_sensor_data.fifo_sample_interval_us = (unsigned)dt;
+	}
+	else
+	{m_sensor_data.fifo_sample_interval_us = 1000;
+	}
+	_last_measure_time = now;
+	
 
 
 	++m_sensor_data.read_counter;
@@ -446,6 +461,8 @@ void LSM9DS1::_measure()
 
 		DF_LOG_INFO("    temp:  %f C",
 			    (double)m_sensor_data.temp_c);
+		DF_LOG_INFO("    time:  %f us",
+			    (double)m_sensor_data.fifo_sample_interval_us);
 	}
 
 #endif
