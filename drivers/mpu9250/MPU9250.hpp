@@ -183,11 +183,12 @@ namespace DriverFramework
 #define MPU9250_MEASURE_INTERVAL_US 4000
 #else
 // update frequency 1000 Hz
-#define MPU9250_MEASURE_INTERVAL_US 1000
+// #define MPU9250_MEASURE_INTERVAL_US 1000
+#define MPU9250_MEASURE_INTERVAL_US 4000
 #endif
 
 // -2000 to 2000 degrees/s, 16 bit signed register, deg to rad conversion
-#define GYRO_RAW_TO_RAD_S 	 (2000.0f / 32768.0f * M_PI_F / 180.0f)
+#define GYRO_RAW_TO_RAD_S 	 ( M_PI_F / 180.0f / 16.4f)
 
 // TODO: include some common header file (currently in drv_sensor.h).
 #define DRV_DF_DEVTYPE_MPU9250 0x41
@@ -240,7 +241,7 @@ public:
 #if defined(__DF_EDISON)
 		_packets_per_cycle_filtered(4.0f), // The FIFO is supposed to run at 1kHz and we sample at 250Hz.
 #else
-		_packets_per_cycle_filtered(8.0f), // The FIFO is supposed to run at 8kHz and we sample at 1kHz.
+		_packets_per_cycle_filtered(4.0f), // The FIFO is supposed to run at 8kHz and we sample at 1kHz.
 #endif
 		_mag(nullptr)
 	{

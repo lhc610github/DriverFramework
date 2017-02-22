@@ -401,6 +401,19 @@ void MS5611::_measure(void)
 		m_sensor_data.pressure_pa = convertPressure(m_pressure_from_sensor);
 		m_sensor_data.last_read_time_usec = DriverFramework::offsetTime();
 		m_sensor_data.read_counter++;
+ #ifdef LSM9DS1_DEBUG
+
+	 if (++m_sensor_data.read_counter % (1000000 / 100000) == 0) {
+
+		DF_LOG_INFO("BARO: temperature: %f C",
+			    (double)m_sensor_data.temperature_c);
+		DF_LOG_INFO("     press:  %f pa",
+			    (double)m_sensor_data.pressure_pa);
+		DF_LOG_INFO("    time:  %f us",
+			    (double)m_sensor_data.last_read_time_usec);
+	 }
+
+  #endif
 		_publish(m_sensor_data);
 
 		m_synchronize.signal();
