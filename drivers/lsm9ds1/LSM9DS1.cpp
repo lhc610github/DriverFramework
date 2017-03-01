@@ -346,7 +346,7 @@ void LSM9DS1::_measure()
 		return;
 	}
 
-	_setBusFrequency(SPI_FREQUENCY_10MHZ);//10
+	_setBusFrequency(SPI_FREQUENCY_10MHZ);
 
 	struct packet report;
 
